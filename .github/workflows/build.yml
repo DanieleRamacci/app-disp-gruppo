@@ -5,25 +5,29 @@ on:
     branches:
       - main
       - test
-      - "**"        # opzionale: builda su tutti i branch
   pull_request:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository_owner }}/app-disp-gruppo
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write   # necessario per pubblicare su GHCR
+      packages: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Decide tag in base al branch
+      - name: Set lowercase image name
+        run: |
+          IMAGE_NAME_LC=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=$IMAGE_NAME_LC" >> $GITHUB_ENV
+
+      - name: Set Docker image tag based on branch
         run: |
           BRANCH_NAME=${GITHUB_REF##*/}
           if [ "$BRANCH_NAME" = "main" ]; then
@@ -32,13 +36,9 @@ jobs:
             echo "IMAGE_TAG=$BRANCH_NAME" >> $GITHUB_ENV
           fi
 
-      - name: Lowercase del nome immagine
-        run: |
-          echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >> $GITHUB_ENV
-
-      - name: Build & Push su GHCR
+      - name: Build and push Docker image to GHCR
         uses: macbre/push-to-ghcr@master
         with:
-          image_name: ${{ env.IMAGE_NAME_LC }}              # ghcr.io/<owner>/<repo>
-          github_token: ${{ secrets.GITHUB_TOKEN }}         # token automatico
-          tags: ${{ env.IMAGE_TAG }},sha-${{ github.sha }}  # es: latest e sha-abcdef...
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          image_name: ${{ env.IMAGE_NAME }}
+          image_tag: ${{ env.IMAGE_TAG }}
