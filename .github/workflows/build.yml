@@ -10,7 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}   # es: DanieleRamacci/app-disp-gruppo
+  IMAGE_NAME: ${{ github.repository_owner }}/app-disp-gruppo
 
 jobs:
   build-and-push:
