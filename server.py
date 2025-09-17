@@ -572,5 +572,5 @@ PAGE_HTML = r"""
 
 # ================== MAIN ==================
 if __name__ == "__main__":
-    # Avvio in development
-    app.run(debug=True)
+    # Avvio in produzione / container
+    app.run(host="0.0.0.0", port=5000, debug=False)
