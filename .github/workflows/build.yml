@@ -1,18 +1,44 @@
-name: Build and Push Docker Image
+name: Build and Push to GHCR
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+      - test
+      - "**"        # opzionale: builda su tutti i branch
+  pull_request:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}   # es: DanieleRamacci/app-disp-gruppo
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # necessario per pubblicare su GHCR
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v3
+      - name: Decide tag in base al branch
+        run: |
+          BRANCH_NAME=${GITHUB_REF##*/}
+          if [ "$BRANCH_NAME" = "main" ]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          else
+            echo "IMAGE_TAG=$BRANCH_NAME" >> $GITHUB_ENV
+          fi
+
+      - name: Lowercase del nome immagine
+        run: |
+          echo "IMAGE_NAME_LC=${IMAGE_NAME,,}" >> $GITHUB_ENV
+
+      - name: Build & Push su GHCR
+        uses: macbre/push-to-ghcr@master
         with:
-          push: true
-          tags: ghcr.io/${{ github.repository }}:latest
+          image_name: ${{ env.IMAGE_NAME_LC }}              # ghcr.io/<owner>/<repo>
+          github_token: ${{ secrets.GITHUB_TOKEN }}         # token automatico
+          tags: ${{ env.IMAGE_TAG }},sha-${{ github.sha }}  # es: latest e sha-abcdef...
