@@ -1,7 +1,18 @@
-version: "3.8"
+version: "3.9"
+
 services:
   app:
-    image: ghcr.io/DanieleRamacci/app-disp-gruppo:latest
-    restart: always
-    ports:
-      - "5050:5050"
+    image: ghcr.io/danieleramacci/app-disp-gruppo:latest
+    container_name: app-disp-gruppo
+    networks:
+      - traefik-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=myresolver"
+    restart: unless-stopped
+
+networks:
+  traefik-net:
+    external: true
