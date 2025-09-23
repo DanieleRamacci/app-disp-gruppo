@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title }}</title>
+  <style>
+    :root{--gap:12px;--r:14px;--txt:#111827;--mut:#6b7280;--card:#f7f9fc;--bd:#e5e7eb;--bg:#ffffff;--primary:#2563eb}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial;color:var(--txt);background:#fff}
+    .container{max-width:980px;margin:0 auto;padding:12px}
+    .pm-card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin:14px 0}
+    .pm-btn{background:#fff;border:1px solid var(--bd);color:var(--txt);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all .2s;font-weight:600;text-decoration:none;display:inline-block}
+    .pm-btn:hover{background:#f9fafb}
+    .pm-muted{color:var(--mut)}
+    .promo-hero{display:flex;flex-direction:column;gap:10px}
+    .promo-hero img{max-width:100%;height:auto;border-radius:12px;border:1px solid var(--bd);background:#fff}
+    .promo-actions{display:flex;gap:10px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 style="margin:14px 0">Promo Week Italo</h1>
+
+    <div class="pm-card promo-hero">
+      {% if img_url %}
+        <img src="{{ img_url }}" alt="{{ img_alt }}">
+      {% else %}
+        <div class="pm-muted">Immagine non disponibile al momento.</div>
+      {% endif %}
+
+      {% if expires_text %}
+        <div><strong>{{ expires_text }}</strong></div>
+      {% endif %}
+
+      <div class="promo-actions">
+        <a class="pm-btn" href="{{ source_url }}" target="_blank" rel="noopener">Prenota su Italo</a>
+        <a class="pm-btn" href="/coupon?refresh=1" title="Aggiorna i dati">Aggiorna</a>
+        <a class="pm-btn" href="/" title="Torna all'app Presenze">Torna all’app</a>
+      </div>
+
+      <div class="pm-muted">Ultimo aggiornamento: {{ fetched_at }}</div>
+    </div>
+
+    <div class="pm-card">
+      <h2 style="margin-top:0">Condizioni dell’offerta</h2>
+      <div>
+        {{ conditions_html|safe }}
+      </div>
+    </div>
+  </div>
+</body>
+</html>
