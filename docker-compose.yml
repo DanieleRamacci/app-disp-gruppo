@@ -5,7 +5,7 @@ services:
     image: ghcr.io/danieleramacci/app-disp-gruppo:latest
     container_name: app-disp-gruppo
     networks:
-      - traefik-net
+      - proxy
     labels:
       - traefik.enable=true
 
