@@ -8,9 +8,15 @@ services:
       - traefik-net
     labels:
       - "traefik.enable=true"
+
       - "traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)"
-      - "traefik.http.routers.app.entrypoints=websecure"
-      - "traefik.http.routers.app.tls.certresolver=myresolver"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.app.middlewares=app-https-redirect"
+
+      - "traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)"
+      - "traefik.http.routers.app-secure.entrypoints=websecure"
+      - "traefik.http.routers.app-secure.tls.certresolver=myresolver"
     restart: unless-stopped
 
 networks:
