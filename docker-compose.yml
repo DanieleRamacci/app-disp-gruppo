@@ -21,7 +21,7 @@ services:
       - "traefik.http.routers.app-secure.tls.certresolver=myresolver"
 
       # Porta interna dell'app (se ascolta su 5000 dentro il container)
-      - "traefik.http.services.app.loadbalancer.server.port=5000"
+      - "traefik.http.services.app.loadbalancer.server.port=8080"
 
     restart: unless-stopped
 
