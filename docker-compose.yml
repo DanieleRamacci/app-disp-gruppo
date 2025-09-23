@@ -9,14 +9,20 @@ services:
     labels:
       - "traefik.enable=true"
 
+      # Redirect HTTP → HTTPS
       - "traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)"
       - "traefik.http.routers.app.entrypoints=web"
       - "traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https"
       - "traefik.http.routers.app.middlewares=app-https-redirect"
 
+      # Router HTTPS
       - "traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)"
       - "traefik.http.routers.app-secure.entrypoints=websecure"
       - "traefik.http.routers.app-secure.tls.certresolver=myresolver"
+
+      # Porta interna dell'app (se ascolta su 5000 dentro il container)
+      - "traefik.http.services.app.loadbalancer.server.port=5000"
+
     restart: unless-stopped
 
 networks:
