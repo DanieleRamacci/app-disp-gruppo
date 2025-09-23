@@ -26,5 +26,5 @@ services:
     restart: unless-stopped
 
 networks:
-  traefik-net:
+ proxy:   # <-- stessa rete definita nel traefik-compose
     external: true
