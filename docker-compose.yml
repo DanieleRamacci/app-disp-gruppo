@@ -7,7 +7,7 @@ services:
     command:
       # Dashboard
       - --api.dashboard=true
-      - --api.insecure=true        # ⚠️ Solo per test (dashboard libera su :8081)
+      - --api.insecure=true   # ATTENZIONE: solo per test, accesso senza password
 
       # EntryPoints
       - --entrypoints.web.address=:80
@@ -18,7 +18,7 @@ services:
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=proxy
 
-      # Let's Encrypt (HTTP-01 su porta 80)
+      # Let's Encrypt (HTTP challenge)
       - --certificatesresolvers.myresolver.acme.httpchallenge=true
       - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.myresolver.acme.email=tuo@email.it
@@ -27,7 +27,7 @@ services:
     ports:
       - 80:80
       - 443:443
-      - 8081:8080   # Dashboard Traefik (http://IP:8081/dashboard)
+      - 8081:8080   # dashboard traefik
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -40,26 +40,25 @@ services:
 
   app:
     image: ghcr.io/danieleramacci/app-disp-gruppo:latest
-    # niente port mapping: ci pensa Traefik
-    labels:
-      - "traefik.enable=true"
-
-      # Redirect HTTP → HTTPS
-      - "traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)"
-      - "traefik.http.routers.app.entrypoints=web"
-      - "traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https"
-      - "traefik.http.routers.app.middlewares=app-https-redirect"
-
-      # Router HTTPS
-      - "traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)"
-      - "traefik.http.routers.app-secure.entrypoints=websecure"
-      - "traefik.http.routers.app-secure.tls.certresolver=myresolver"
-
-      # Porta interna del container dove ascolta Flask
-      - "traefik.http.services.app.loadbalancer.server.port=5001"
-
+    container_name: app-disp-gruppo
     networks:
       - proxy
+    labels:
+      - traefik.enable=true
+
+      # Redirect HTTP → HTTPS
+      - traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)
+      - traefik.http.routers.app.entrypoints=web
+      - traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https
+      - traefik.http.routers.app.middlewares=app-https-redirect
+
+      # Router HTTPS
+      - traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)
+      - traefik.http.routers.app-secure.entrypoints=websecure
+      - traefik.http.routers.app-secure.tls.certresolver=myresolver
+
+      # Porta interna dell'app (server.py ascolta su 5000)
+      - traefik.http.services.app.loadbalancer.server.port=5000
 
     restart: unless-stopped
 
@@ -68,4 +67,4 @@ volumes:
 
 networks:
   proxy:
-    driver: bridge
+    name: proxy

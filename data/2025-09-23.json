@@ -3,7 +3,7 @@
   "entries": [
     {
       "name": "Daniele",
-      "status": "remote"
+      "status": "presence"
     },
     {
       "name": "jhon",
@@ -14,5 +14,5 @@
       "status": "flexible"
     }
   ],
-  "updated_at": "2025-09-20T18:41:07.895892"
+  "updated_at": "2025-09-23T20:21:59.918067"
 }
