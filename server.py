@@ -2,11 +2,7 @@
 from flask import Flask, request, jsonify, session, render_template
 import os, json, threading
 from datetime import datetime, date, timedelta
-import re, time
 from urllib.parse import urljoin
-import requests
-from markupsafe import Markup
-from bs4 import BeautifulSoup
 
 
 from routes.coupon import bp_coupon
@@ -202,110 +198,10 @@ def api_summary():
         })
     return jsonify({"success": True, "days": out})
 
-def _download_image(abs_url: str, dest_rel: str = "coupons/promo.png") -> str:
-    """Scarica l'immagine promo e la salva in static/, restituisce il path relativo per url_for('static', filename=...)"""
-    resp = requests.get(abs_url, timeout=10)
-    resp.raise_for_status()
-    # salva come PNG/JPG a seconda del contenuto, ma manteniamo .png per semplicità
-    dest_abs = os.path.join(STATIC_DIR, dest_rel)
-    os.makedirs(os.path.dirname(dest_abs), exist_ok=True)
-    with open(dest_abs, "wb") as f:
-        f.write(resp.content)
-    return dest_rel
-
-def fetch_coupon(refresh: bool = False):
-    """Legge la pagina promo, estrae: immagine, condizioni (HTML), riga scadenza, url sorgente.
-       Cache 30m, forzabile con refresh=True."""
-    now = time.time()
-    if not refresh and _coupon_cache["data"] and now - _coupon_cache["ts"] < COUPON_TTL:
-        return _coupon_cache["data"]
-
-    r = requests.get(PROMO_URL, timeout=10)
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "html.parser")
-
-    # 1) immagine promo (prendiamo la prima img dentro .img-container)
-    img_url = None
-    img_alt = ""
-    first_img = soup.select_one(".img-container img")
-    if first_img and first_img.get("src"):
-        img_url = urljoin(PROMO_URL, first_img["src"])
-        img_alt = first_img.get("alt", "")
-    # se non trovata, fallback: nulla
-
-    # 2) condizioni (inner HTML di .condizioni-text, se esiste)
-    cond_el = soup.select_one(".condizioni-text")
-    conditions_html = ""
-    expires_text = None
-    if cond_el:
-        # HTML come stringa "sicura" (verrà messa in safe nel template)
-        # Rimuovi commenti HTML e spazi ripetuti
-        for c in cond_el.find_all(string=lambda s: isinstance(s, type(cond_el.string)) and isinstance(s, str) and s.strip().startswith("<!--")):
-            try:
-                c.extract()
-            except Exception:
-                pass
-        conditions_html = str(cond_el)
-
-        # prova ad individuare la riga "Acquista entro..."
-        strongs = cond_el.find_all("strong")
-        for st in strongs:
-            txt = st.get_text(strip=True)
-            if "Acquista entro" in txt or "Promozione estesa" in txt:
-                expires_text = txt
-                break
-
-    # 3) scarica l’immagine in locale (se disponibile)
-    local_img_rel = None
-    if img_url:
-        try:
-            local_img_rel = _download_image(img_url)  # es. "coupons/promo.png"
-        except Exception:
-            local_img_rel = None
-
-    data = {
-        "source_url": PROMO_URL,
-        "local_img_rel": local_img_rel,  # per url_for('static', filename=...)
-        "img_alt": img_alt or "Italo Promo",
-        "conditions_html": conditions_html,
-        "expires_text": expires_text,
-        "fetched_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
-    }
-    _coupon_cache["ts"] = now
-    _coupon_cache["data"] = data
-    return data
 
 
-@app.get("/coupon")
-def coupon_page():
-    refresh = request.args.get("refresh") == "1"
-    try:
-        data = fetch_coupon(refresh=refresh)
-    except Exception as e:
-        # fallback in caso di errore
-        data = {
-            "source_url": PROMO_URL,
-            "local_img_rel": None,
-            "img_alt": "Italo Promo",
-            "conditions_html": "<p class='pm-muted'>Non è stato possibile caricare le condizioni ora. Riprova più tardi.</p>",
-            "expires_text": None,
-            "fetched_at": datetime.now().strftime("%d/%m/%Y %H:%M"),
-        }
-
-    # costruisci la URL dell’immagine locale (se presente)
-    img_url = url_for("static", filename=data["local_img_rel"]) if data["local_img_rel"] else None
-    return render_template(
-        "coupon.html",
-        title="Promo Week Italo",
-        img_url=img_url,
-        img_alt=data["img_alt"],
-        conditions_html=Markup(data["conditions_html"] or ""),
-        expires_text=data["expires_text"],
-        source_url=data["source_url"],
-        fetched_at=data["fetched_at"],
-    )
 
 
 # ================== MAIN ==================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)
