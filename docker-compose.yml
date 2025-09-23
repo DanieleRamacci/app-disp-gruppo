@@ -1,30 +1,71 @@
 version: "3.9"
 
 services:
-  app:
-    image: ghcr.io/danieleramacci/app-disp-gruppo:latest
-    container_name: app-disp-gruppo
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    command:
+      # Dashboard
+      - --api.dashboard=true
+      - --api.insecure=true        # ⚠️ Solo per test (dashboard libera su :8081)
+
+      # EntryPoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+
+      # Docker provider
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=proxy
+
+      # Let's Encrypt (HTTP-01 su porta 80)
+      - --certificatesresolvers.myresolver.acme.httpchallenge=true
+      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.myresolver.acme.email=tuo@email.it
+      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
+
+    ports:
+      - 80:80
+      - 443:443
+      - 8081:8080   # Dashboard Traefik (http://IP:8081/dashboard)
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_data:/letsencrypt
+
     networks:
       - proxy
-    labels:
-      - traefik.enable=true
-
-      # Redirect HTTP → HTTPS
-      - traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)
-      - traefik.http.routers.app.entrypoints=web
-      - traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https
-      - traefik.http.routers.app.middlewares=app-https-redirect
-
-      # Router HTTPS
-      - traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)
-      - traefik.http.routers.app-secure.entrypoints=websecure
-      - traefik.http.routers.app-secure.tls.certresolver=myresolver
-
-      # Porta interna dell'app (se ascolta su 5000 dentro il container)
-      - traefik.http.services.app.loadbalancer.server.port=5001
 
     restart: unless-stopped
 
+  app:
+    image: ghcr.io/danieleramacci/app-disp-gruppo:latest
+    # niente port mapping: ci pensa Traefik
+    labels:
+      - "traefik.enable=true"
+
+      # Redirect HTTP → HTTPS
+      - "traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)"
+      - "traefik.http.routers.app.entrypoints=web"
+      - "traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.routers.app.middlewares=app-https-redirect"
+
+      # Router HTTPS
+      - "traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)"
+      - "traefik.http.routers.app-secure.entrypoints=websecure"
+      - "traefik.http.routers.app-secure.tls.certresolver=myresolver"
+
+      # Porta interna del container dove ascolta Flask
+      - "traefik.http.services.app.loadbalancer.server.port=5001"
+
+    networks:
+      - proxy
+
+    restart: unless-stopped
+
+volumes:
+  traefik_data:
+
 networks:
- proxy:   # <-- stessa rete definita nel traefik-compose
-    external: true
+  proxy:
+    driver: bridge
