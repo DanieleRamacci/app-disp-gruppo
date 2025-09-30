@@ -1,33 +1,4 @@
 services:
-  traefik:
-    image: traefik:v2.10
-    container_name: traefik
-    command:
-      - --api.dashboard=true
-      # EntryPoints
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      # Provider Docker
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=gruppo_proxy
-      # Let's Encrypt (HTTP-01)
-      - --certificatesresolvers.myresolver.acme.httpchallenge=true
-      - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.myresolver.acme.email=${LETSENCRYPT_EMAIL}
-      - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
-    ports:
-      - "80:80"
-      - "443:443"
-      # ⚠️ Esponi la dashboard solo se necessario (meglio proteggerla con basic auth)
-      # - "8081:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - traefik_data:/letsencrypt
-    networks:
-      - gruppo_proxy
-    restart: unless-stopped
-
   app:
     image: ghcr.io/danieleramacci/app-disp-gruppo:latest
     container_name: app-disp-gruppo
