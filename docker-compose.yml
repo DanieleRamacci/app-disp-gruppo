@@ -1,33 +1,31 @@
-version: "3.9"
-
 services:
   traefik:
     image: traefik:v2.10
     container_name: traefik
     command:
-      # Dashboard
+      # Dashboard (ATTENZIONE: api.insecure=true è solo per test; rimuovi in produzione)
       - --api.dashboard=true
-      - --api.insecure=true   # ATTENZIONE: solo per test, accesso senza password
+      - --api.insecure=true
 
       # EntryPoints
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
 
-      # Docker provider
+      # Provider Docker
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=proxy
 
-      # Let's Encrypt (HTTP challenge)
+      # Let's Encrypt - HTTP-01
       - --certificatesresolvers.myresolver.acme.httpchallenge=true
       - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
-      - --certificatesresolvers.myresolver.acme.email=tuo@email.it
+      - --certificatesresolvers.myresolver.acme.email=${LETSENCRYPT_EMAIL}
       - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
 
     ports:
-      - 80:80
-      - 443:443
-      - 8081:8080   # dashboard traefik
+      - "80:80"
+      - "443:443"
+      - "8081:8080" # dashboard traefik (solo test)
 
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -41,30 +39,40 @@ services:
   app:
     image: ghcr.io/danieleramacci/app-disp-gruppo:latest
     container_name: app-disp-gruppo
-    networks:
-      - proxy
+    # Se il server è ARM e l'immagine è solo amd64, sblocca la riga seguente:
+    # platform: "linux/amd64"
+
     labels:
       - traefik.enable=true
 
-      # Redirect HTTP → HTTPS
-      - traefik.http.routers.app.rule=Host(`gruppo.easydigitalagency.it`)
+      # Redirect HTTP -> HTTPS sul dominio
+      - traefik.http.routers.app.rule=Host(`${APP_DOMAIN}`)
       - traefik.http.routers.app.entrypoints=web
       - traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https
       - traefik.http.routers.app.middlewares=app-https-redirect
 
-      # Router HTTPS
-      - traefik.http.routers.app-secure.rule=Host(`gruppo.easydigitalagency.it`)
+      # Router HTTPS sul dominio
+      - traefik.http.routers.app-secure.rule=Host(`${APP_DOMAIN}`)
       - traefik.http.routers.app-secure.entrypoints=websecure
       - traefik.http.routers.app-secure.tls.certresolver=myresolver
 
-      # Porta interna dell'app (server.py ascolta su 5000)
-      - traefik.http.services.app.loadbalancer.server.port=5000
+      # Porta interna dell'app (server.py usa 5001)
+      - traefik.http.services.app.loadbalancer.server.port=5001
 
+    networks:
+      - proxy
+
+    # Persiste i dati creati in /app/data dal tuo server.py
+    volumes:
+      - app_data:/app/data
+
+    pull_policy: always
     restart: unless-stopped
-
-volumes:
-  traefik_data:
 
 networks:
   proxy:
     name: proxy
+
+volumes:
+  traefik_data:
+  app_data:
