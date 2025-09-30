@@ -3,75 +3,71 @@ services:
     image: traefik:v2.10
     container_name: traefik
     command:
-      # Dashboard (ATTENZIONE: api.insecure=true è solo per test; rimuovi in produzione)
       - --api.dashboard=true
-      - --api.insecure=true
-
       # EntryPoints
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-
       # Provider Docker
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
-      - --providers.docker.network=proxy
-
-      # Let's Encrypt - HTTP-01
+      - --providers.docker.network=gruppo_proxy
+      # Let's Encrypt (HTTP-01)
       - --certificatesresolvers.myresolver.acme.httpchallenge=true
       - --certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web
       - --certificatesresolvers.myresolver.acme.email=${LETSENCRYPT_EMAIL}
       - --certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json
-
     ports:
       - "80:80"
       - "443:443"
-      - "8081:8080" # dashboard traefik (solo test)
-
+      # ⚠️ Esponi la dashboard solo se necessario (meglio proteggerla con basic auth)
+      # - "8081:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik_data:/letsencrypt
-
     networks:
-      - proxy
-
+      - gruppo_proxy
     restart: unless-stopped
 
   app:
     image: ghcr.io/danieleramacci/app-disp-gruppo:latest
     container_name: app-disp-gruppo
-    # Se il server è ARM e l'immagine è solo amd64, sblocca la riga seguente:
+    # Se il server è ARM e l’immagine è solo amd64, abilita:
     # platform: "linux/amd64"
-
     labels:
       - traefik.enable=true
 
-      # Redirect HTTP -> HTTPS sul dominio
+      # Router HTTP (solo redirect → HTTPS)
       - traefik.http.routers.app.rule=Host(`${APP_DOMAIN}`)
       - traefik.http.routers.app.entrypoints=web
       - traefik.http.middlewares.app-https-redirect.redirectscheme.scheme=https
       - traefik.http.routers.app.middlewares=app-https-redirect
 
-      # Router HTTPS sul dominio
+      # Router HTTPS
       - traefik.http.routers.app-secure.rule=Host(`${APP_DOMAIN}`)
       - traefik.http.routers.app-secure.entrypoints=websecure
       - traefik.http.routers.app-secure.tls.certresolver=myresolver
 
-      # Porta interna dell'app (server.py usa 5001)
+      # Servizio interno: l'app ascolta su 5001
       - traefik.http.services.app.loadbalancer.server.port=5001
 
-    networks:
-      - proxy
+      # (opzionali) security headers base
+      - traefik.http.middlewares.sec-headers.headers.stsSeconds=31536000
+      - traefik.http.middlewares.sec-headers.headers.stsIncludeSubdomains=true
+      - traefik.http.middlewares.sec-headers.headers.stsPreload=true
+      - traefik.http.middlewares.sec-headers.headers.browserXssFilter=true
+      - traefik.http.middlewares.sec-headers.headers.contentTypeNosniff=true
+      - traefik.http.routers.app-secure.middlewares=sec-headers
 
-    # Persiste i dati creati in /app/data dal tuo server.py
     volumes:
       - app_data:/app/data
-
+    networks:
+      - gruppo_proxy
     pull_policy: always
     restart: unless-stopped
 
 networks:
-  proxy:
-    name: proxy
+  gruppo_proxy:
+    name: gruppo_proxy
 
 volumes:
   traefik_data:
