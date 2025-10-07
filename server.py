@@ -2,11 +2,8 @@
 from flask import Flask, request, jsonify, session, render_template
 import os, json, threading
 from datetime import datetime, date, timedelta
-from urllib.parse import urljoin
-
 
 from routes.coupon import bp_coupon
-
 
 # ================== CONFIG ==================
 SECRET_KEY     = "cambia-questa-chiave"   # CAMBIA in produzione
@@ -15,21 +12,12 @@ PM_DATA_DIR    = "data"
 PM_WEEKS_DEF   = 20
 PM_MIN_P_DEF   = 4
 
-PROMO_URL = "https://www.italotreno.com/it/promo-week"
-STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
-COUPON_DIR = os.path.join(STATIC_DIR, "coupons")
-os.makedirs(COUPON_DIR, exist_ok=True)
-
-# cache semplice in memoria
-_coupon_cache = {"ts": 0, "data": None}
-COUPON_TTL = 60 * 30  # 30 minuti
-
+VALID_STATUSES = {"presence", "online"}
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 os.makedirs(PM_DATA_DIR, exist_ok=True)
 app.register_blueprint(bp_coupon)
-
 
 # lock per scritture concorrenti sui file JSON
 write_lock = threading.Lock()
@@ -52,6 +40,13 @@ def day_path(dstr: str) -> str:
     return os.path.join(PM_DATA_DIR, f"{dstr}.json")
 
 def read_day(dstr: str):
+    """Struttura base:
+    {
+      "date": "YYYY-MM-DD",
+      "entries": [{"name": "...", "status": "presence|online"}],
+      "updated_at": "iso"
+    }
+    """
     p = day_path(dstr)
     if not os.path.exists(p):
         return {"date": dstr, "entries": [], "updated_at": None}
@@ -136,13 +131,19 @@ def api_list():
     rows = []
     for d in dates:
         data = read_day(d)
-        counts = {"presence": 0, "flexible": 0, "remote": 0}
+        # SOLO due stati
+        lists = {"presence": [], "online": []}
         for e in data["entries"]:
-            st = e.get("status")
-            if st in counts:
-                counts[st] += 1
+            st = (e.get("status") or "").strip().lower()
+            n  = sanitize_name(e.get("name") or "")
+            if st in lists and n:
+                lists[st].append(n)
+        for k in lists:
+            lists[k] = sorted(lists[k], key=str.lower)
+
+        counts = {k: len(v) for k, v in lists.items()}
         mine = find_status(data["entries"], user)
-        rows.append({"date": d, "counts": counts, "my": mine})
+        rows.append({"date": d, "counts": counts, "my": mine, "lists": lists})
     return jsonify({"success": True, "days": rows, "me": user})
 
 @app.post("/save")
@@ -154,7 +155,7 @@ def api_save():
     st = (request.form.get("status") or "").strip().lower()
     if not is_tuesday(d):
         return jsonify({"success": False, "error": "Data non valida (martedì, YYYY-MM-DD)"}), 400
-    if st not in ["presence", "flexible", "remote"]:
+    if st not in VALID_STATUSES:
         return jsonify({"success": False, "error": "Stato non valido"}), 400
     data = write_day(d, {"name": user, "status": st})
     return jsonify({"success": True, "data": data})
@@ -183,10 +184,10 @@ def api_summary():
     out = []
     for d in dates:
         data = read_day(d)
-        lists = {"presence": [], "flexible": [], "remote": []}
+        lists = {"presence": [], "online": []}
         for e in data.get("entries", []):
             n = sanitize_name(e.get("name", ""))
-            s = (e.get("status") or "")
+            s = (e.get("status") or "").strip().lower()
             if n and s in lists:
                 lists[s].append(n)
         for k in lists:
@@ -197,10 +198,6 @@ def api_summary():
             "counts": {k: len(v) for k, v in lists.items()}
         })
     return jsonify({"success": True, "days": out})
-
-
-
-
 
 # ================== MAIN ==================
 if __name__ == "__main__":
