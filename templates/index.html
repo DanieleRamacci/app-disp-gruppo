@@ -58,6 +58,30 @@
     .pm-loader{width:42px;height:42px;border-radius:50%;border:4px solid #e5e7eb;border-top-color:var(--primary);animation:pm-spin .9s linear infinite}
     .pm-loadtext{font-weight:600;color:#111827}
     @keyframes pm-spin { to { transform: rotate(360deg); } }
+
+    .pm-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+  margin-top:6px;
+}
+
+/* le etichette restano in riga e vanno a capo se serve */
+.pm-badges{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+/* bottone "Dettagli presenze" a tutta larghezza, allineato a sinistra */
+.pm-collapse-btn{
+  display:flex;              /* già c'era, ma ribadiamo */
+  align-items:center;
+  gap:6px;
+  width:100%;                /* <- full width */
+  justify-content:flex-start;
+}
   </style>
 </head>
 <body>
@@ -241,23 +265,28 @@
       const {date, counts, my}=d;
       const c=el('div',{class:'pm-card', id:'day-'+date, 'data-month':monthKey(date)});
 
-      // head con soglia e pallino
-      const sottoSoglia = (counts?.presence || 0) < minP;
-      const headLeft = el('div',{},[
-        el('div',{class:'pm-name'}, new Date(date).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
-        el('div',{class:'pm-muted'}, date)
-      ]);
-      const headRight=el('div',{class:'pm-badges'},[
-        el('span',{class:'pm-stat'}, `Presenza: ${counts?.presence||0}`),
-        el('span',{class:'pm-stat'}, `Online: ${counts?.online||0}`)
-      ]);
-      const head=el('div',{class:'pm-row', style:'justify-content:space-between;align-items:center'},[
-        el('div',{},[
-          headLeft,
-          sottoSoglia ? el('div',{class:'pm-muted', style:'margin-top:4px'},[ el('span',{class:'pm-dot'}),'siamo meno di '+minP ]) : ''
-        ]),
-        headRight
-      ]);
+   // head: riga titolo + iso
+const sottoSoglia = (counts?.presence || 0) < minP;
+
+const headTop = el('div',{class:'pm-row', style:'justify-content:space-between;align-items:center'},[
+  el('div',{},[
+    el('div',{class:'pm-name'}, new Date(date).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
+    el('div',{class:'pm-muted'}, date)
+  ])
+]);
+
+// riga meta: a sinistra alert "siamo meno di X", a destra i badge conteggi
+const alertNode = sottoSoglia
+  ? el('div',{class:'pm-muted'}, [ el('span',{class:'pm-dot'}),'siamo meno di '+minP ])
+  : el('div',{}); // vuoto se non sotto soglia
+
+const badges = el('div',{class:'pm-badges'},[
+  el('span',{class:'pm-stat'}, `Presenza: ${counts?.presence||0}`),
+  el('span',{class:'pm-stat'}, `Online: ${counts?.online||0}`)
+]);
+
+const headMeta = el('div',{class:'pm-meta'}, [ alertNode, badges ]);
+
 
       const actions=el('div',{class:'pm-row'},[
         el('button',{class:'pm-pill'+(my==='presence'?' sel':''), onclick:()=>save(date,'presence')},'Presenza'),
@@ -275,7 +304,7 @@
 
       const panel = detailsPanel(d);
 
-      c.append(head,actions,mine,btnCollapse,panel);
+c.append(headTop, headMeta, actions, mine, btnCollapse, panel);
       return c;
     }
 
