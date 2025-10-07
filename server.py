@@ -7,15 +7,15 @@ from routes.coupon import bp_coupon
 
 # ================== CONFIG ==================
 SECRET_KEY     = "cambia-questa-chiave"   # CAMBIA in produzione
-PM_PASSCODE    = "1234"                   # CAMBIA subito
+PM_PASSCODE    = "melograno"                   # CAMBIA subito
 PM_DATA_DIR    = "data"
-PM_WEEKS_DEF   = 20
+PM_WEEKS_DEF   = 39
 PM_MIN_P_DEF   = 4
 
 VALID_STATUSES = {"presence", "online"}
 
 # --- ADMIN ---
-ADMIN_PASSCODE = "metti-una-password-lunga"  # CAMBIA in produzione
+ADMIN_PASSCODE = "abcCBA123$miosolomio"  # CAMBIA in produzione
 
 def require_admin():
     if not session.get("is_admin"):
