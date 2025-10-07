@@ -245,7 +245,7 @@
       const sottoSoglia = (counts?.presence || 0) < minP;
       const headLeft = el('div',{},[
         el('div',{class:'pm-name'}, new Date(date).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
-        el('div',{class:'pm-muted'}, 'ISO: '+date)
+        el('div',{class:'pm-muted'}, date)
       ]);
       const headRight=el('div',{class:'pm-badges'},[
         el('span',{class:'pm-stat'}, `Presenza: ${counts?.presence||0}`),
