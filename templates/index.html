@@ -324,7 +324,7 @@
         el('div',{},[
           el('strong',{}, new Date(d).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
           el('span',{class:'pm-muted'}, ' ('+d+') '),
-          alert ? el('span',{class:'pm-muted'}, [el('span',{class:'pm-dot'}), ' sotto soglia di '+minP]) : ''
+          alert ? el('span',{class:'pm-muted'}, [el('span',{class:'pm-dot'}), ' Siamo meno di '+minP]) : ''
         ]),
         el('div',{class:'pm-badges'},[
           el('span',{class:'pm-stat'}, `Presenza: ${counts?.presence||0}`),
