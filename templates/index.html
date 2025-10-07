@@ -277,7 +277,7 @@ const headTop = el('div',{class:'pm-row', style:'justify-content:space-between;a
 
 // riga meta: a sinistra alert "siamo meno di X", a destra i badge conteggi
 const alertNode = sottoSoglia
-  ? el('div',{class:'pm-muted'}, [ el('span',{class:'pm-dot'}),'siamo meno di '+minP ])
+  ? el('div',{class:'pm-muted'}, [ el('span',{class:'pm-dot'}),'meno di '+minP ])
   : el('div',{}); // vuoto se non sotto soglia
 
 const badges = el('div',{class:'pm-badges'},[
@@ -353,7 +353,7 @@ c.append(headTop, headMeta, actions, mine, btnCollapse, panel);
         el('div',{},[
           el('strong',{}, new Date(d).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
           el('span',{class:'pm-muted'}, ' ('+d+') '),
-          alert ? el('span',{class:'pm-muted'}, [el('span',{class:'pm-dot'}), ' Siamo meno di '+minP]) : ''
+          alert ? el('span',{class:'pm-muted'}, [el('span',{class:'pm-dot'}), 'meno di '+minP]) : ''
         ]),
         el('div',{class:'pm-badges'},[
           el('span',{class:'pm-stat'}, `Presenza: ${counts?.presence||0}`),
