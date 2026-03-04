@@ -98,9 +98,9 @@
 .pm-pause-badge{
   display:inline-flex;
   align-items:center;
-  border:1px solid #ef4444;
-  color:#b91c1c;
-  background:#fef2f2;
+  border:1px solid var(--primary);
+  color:var(--primary);
+  background:#fff7f5;
   border-radius:999px;
   padding:4px 10px;
   font-size:12px;
@@ -297,7 +297,7 @@ const headTop = el('div',{class:'pm-row', style:'justify-content:space-between;a
     el('div',{class:'pm-name'}, new Date(date).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
     el('div',{class:'pm-muted'}, date)
   ]),
-  paused ? el('span',{class:'pm-pause-badge'},'PAUSA') : ''
+  paused ? el('span',{class:'pm-pause-badge'},'🏖️ PAUSA') : ''
 ]);
 
 // riga meta: a sinistra alert "siamo meno di X", a destra i badge conteggi
@@ -381,7 +381,7 @@ c.append(headTop, headMeta, actions, mine, btnCollapse, panel);
         el('div',{},[
           el('strong',{}, new Date(d).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
           el('span',{class:'pm-muted'}, ' ('+d+') '),
-          paused ? el('span',{class:'pm-pause-badge', style:'margin-right:6px'}, 'PAUSA') : '',
+          paused ? el('span',{class:'pm-pause-badge', style:'margin-right:6px'}, '🏖️ PAUSA') : '',
           alert ? el('span',{class:'pm-muted'}, [el('span',{class:'pm-dot'}), 'meno di '+minP]) : ''
         ]),
         el('div',{class:'pm-badges'},[
