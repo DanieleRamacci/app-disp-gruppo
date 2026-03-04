@@ -23,6 +23,7 @@
     .pm-pill{border-radius:999px;padding:12px 14px;border:1px solid var(--bd);background:#fff;color:var(--txt);font-size:15px;font-weight:600;transition:all .2s;flex:1;min-width:110px;text-align:center}
     .pm-pill:hover{background:#f3f4f6}
     .pm-pill.sel{background:var(--primary);border-color:var(--primary);color:#fff}
+    .pm-pill:disabled{opacity:.6;cursor:not-allowed;background:#f3f4f6}
     input[type="text"], input[type="password"]{width:100%;background:#fff;border:1px solid var(--bd);border-radius:10px;padding:12px;font-size:16px}
     .pm-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
     .pm-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid var(--bd);cursor:pointer;font-size:13px;user-select:none}
@@ -93,6 +94,17 @@
   gap:6px;
   width:100%;                /* <- full width */
   justify-content:flex-start;
+}
+.pm-pause-badge{
+  display:inline-flex;
+  align-items:center;
+  border:1px solid #ef4444;
+  color:#b91c1c;
+  background:#fef2f2;
+  border-radius:999px;
+  padding:4px 10px;
+  font-size:12px;
+  font-weight:700;
 }
   </style>
 </head>
@@ -274,7 +286,7 @@
     }
 
     function cardDay(d){
-      const {date, counts, my}=d;
+      const {date, counts, my, paused}=d;
       const c=el('div',{class:'pm-card', id:'day-'+date, 'data-month':monthKey(date)});
 
    // head: riga titolo + iso
@@ -284,7 +296,8 @@ const headTop = el('div',{class:'pm-row', style:'justify-content:space-between;a
   el('div',{},[
     el('div',{class:'pm-name'}, new Date(date).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
     el('div',{class:'pm-muted'}, date)
-  ])
+  ]),
+  paused ? el('span',{class:'pm-pause-badge'},'PAUSA') : ''
 ]);
 
 // riga meta: a sinistra alert "siamo meno di X", a destra i badge conteggi
@@ -301,11 +314,14 @@ const headMeta = el('div',{class:'pm-meta'}, [ alertNode, badges ]);
 
 
       const actions=el('div',{class:'pm-row'},[
-        el('button',{class:'pm-pill'+(my==='presence'?' sel':''), onclick:()=>save(date,'presence')},'Presenza'),
-        el('button',{class:'pm-pill'+(my==='online'?' sel':''),   onclick:()=>save(date,'online')},  'Online')
+        el('button',{class:'pm-pill'+(my==='presence'?' sel':''), onclick:()=>save(date,'presence'), ...(paused ? {disabled:'disabled'} : {})},'Presenza'),
+        el('button',{class:'pm-pill'+(my==='online'?' sel':''),   onclick:()=>save(date,'online'), ...(paused ? {disabled:'disabled'} : {})},  'Online')
       ]);
 
-      const mine=el('div',{class:'pm-muted', style:'margin-top:2px'}, 'Tuo stato: '+(my?({'presence':'Presenza','online':'Online'})[my]:'—'));
+      const mineText = paused
+        ? 'Martedì in pausa: prenotazioni disabilitate.'
+        : ('Tuo stato: '+(my?({'presence':'Presenza','online':'Online'})[my]:'—'));
+      const mine=el('div',{class:'pm-muted', style:'margin-top:2px'}, mineText);
 
       // collapsable
       const caret = el('span',{class:'pm-caret','aria-hidden':'true'},'▸');
@@ -358,13 +374,14 @@ c.append(headTop, headMeta, actions, mine, btnCollapse, panel);
 
     // ---- RIEPILOGO ----
     function summaryRow(day){
-      const d=day.date, counts=day.counts, lists=day.lists||{presence:[],online:[]};
+      const d=day.date, counts=day.counts, lists=day.lists||{presence:[],online:[]}, paused=!!day.paused;
       const alert = (counts?.presence||0) < minP;
       const wrap=el('div',{class:'pm-rowcard', id:'sum-'+d, 'data-month':monthKey(d)});
       const top=el('div',{class:'pm-row', style:'justify-content:space-between;align-items:center'},[
         el('div',{},[
           el('strong',{}, new Date(d).toLocaleDateString('it-IT',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})),
           el('span',{class:'pm-muted'}, ' ('+d+') '),
+          paused ? el('span',{class:'pm-pause-badge', style:'margin-right:6px'}, 'PAUSA') : '',
           alert ? el('span',{class:'pm-muted'}, [el('span',{class:'pm-dot'}), 'meno di '+minP]) : ''
         ]),
         el('div',{class:'pm-badges'},[
